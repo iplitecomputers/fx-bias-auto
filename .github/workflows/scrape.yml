@@ -2,14 +2,17 @@ name: Hourly Confluence Scrape
 
 on:
   schedule:
-    - cron: '0 * * * *' # Runs at the start of every hour
-  workflow_dispatch:      # Allows you to click a button to run it manually
+    # This runs every hour, Monday through Friday
+    # And starts late Sunday (22:00 UTC) when Sydney opens
+    - cron: '0 * * * 1-5'
+    - cron: '0 22,23 * * 0'
+  workflow_dispatch:      # Still lets you run it manually anytime
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write    # Required to save the history.json and index.html back to repo
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,12 +32,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          
-          # IMPORTANT: This adds BOTH the website and the memory file
           git add index.html history.json
-          
-          # This saves the changes to your repository
-          git commit -m "Update Dashboard, History and Duration" || exit 0
-          
-          # This pushes the files so the next run can see the previous hour
+          git commit -m "Market Update" || exit 0
           git push
