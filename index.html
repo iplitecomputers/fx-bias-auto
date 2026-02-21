@@ -1,12 +1,39 @@
 
-    <html><body style="background:#0f172a; color:white; font-family:sans-serif; text-align:center;">
-        <h1>Confluence Bias Dashboard</h1>
-        <p>Updated: 2026-02-21 10:56:58.903866</p>
-        <div style="background:#1e293b; padding:20px; border-radius:10px; display:inline-block;">
-            <h3>Active Pairings</h3>
-            No Confluence Found
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Fx Bias Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { background:#020617; color:white; font-family:sans-serif; text-align:center; padding:20px; }
+            .container { max-width:900px; margin:auto; background:#0f172a; padding:30px; border-radius:15px; border:1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+            h1 { margin-bottom:5px; letter-spacing:-1px; color: #f8fafc; }
+            .subtitle { color:#64748b; margin-bottom:30px; font-size: 14px; }
+            table { width:100%; border-collapse:collapse; text-align:left; }
+            th { color:#94a3b8; border-bottom: 2px solid #1e293b; text-transform:uppercase; font-size:12px; padding:12px; }
+            .currency-box { margin-top:40px; padding:15px; background:#020617; border-radius:8px; font-size:11px; color:#475569; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+            .currency-item { border: 1px solid #1e293b; padding: 5px 10px; border-radius: 4px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Fx Confluence Dashboard</h1>
+            <p class="subtitle">Last Updated: 2026-02-21 11:17:24 UTC</p>
+            
+            <table>
+                <tr>
+                    <th>Pair</th>
+                    <th>Current Signal</th>
+                    <th>Last Hour</th>
+                    <th>Trend & Duration</th>
+                </tr>
+                <tr><td colspan='4' style='padding:40px; text-align:center; color:#475569;'>No Confluence Detected. Waiting for Market Alignment...</td></tr>
+            </table>
+
+            <div class="currency-box">
+                <span class='currency-item'><b>USD:</b> 0</span><span class='currency-item'><b>EUR:</b> 0</span><span class='currency-item'><b>GBP:</b> 0</span><span class='currency-item'><b>JPY:</b> 0</span><span class='currency-item'><b>AUD:</b> 0</span><span class='currency-item'><b>NZD:</b> 0</span><span class='currency-item'><b>CAD:</b> 0</span><span class='currency-item'><b>CHF:</b> 0</span>
+            </div>
         </div>
-        <h3>Currency Status</h3>
-        <p>USD: 0</p><p>EUR: 0</p><p>GBP: 0</p><p>JPY: 0</p><p>AUD: 0</p><p>NZD: 0</p><p>CAD: 0</p><p>CHF: 0</p>
-    </body></html>
+    </body>
+    </html>
     
