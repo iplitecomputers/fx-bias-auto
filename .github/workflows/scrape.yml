@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write    # Allows the bot to save the HTML file back to your repo
+      contents: write    # Required to save the history.json and index.html back to repo
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,6 +29,12 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add index.html
-          git commit -m "Update Bias Scores" || exit 0
+          
+          # IMPORTANT: This adds BOTH the website and the memory file
+          git add index.html history.json
+          
+          # This saves the changes to your repository
+          git commit -m "Update Dashboard, History and Duration" || exit 0
+          
+          # This pushes the files so the next run can see the previous hour
           git push
