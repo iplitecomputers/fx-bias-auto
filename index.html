@@ -6,39 +6,48 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body { background:#020617; color:white; font-family:sans-serif; text-align:center; padding:20px; }
-            .container { max-width:1000px; margin:auto; background:#0f172a; padding:30px; border-radius:15px; border:1px solid #1e293b; }
-            .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-            table { width:100%; border-collapse:collapse; text-align:left; }
-            th { color:#94a3b8; border-bottom: 2px solid #1e293b; padding:12px; font-size:12px; }
-            .widget-card { background:#020617; border-radius:10px; border:1px solid #1e293b; padding:10px; height: 400px; overflow: hidden; }
-            @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+            .container { max-width:1100px; margin:auto; background:#0f172a; padding:30px; border-radius:15px; border:1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+            .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; }
+            table { width:100%; border-collapse:collapse; text-align:left; margin-bottom: 20px; }
+            th { color:#94a3b8; border-bottom: 2px solid #1e293b; padding:12px; font-size:12px; text-transform: uppercase; }
+            td { padding: 12px; border-bottom: 1px solid #1e293b; }
+            .widget-card { background:#131722; border-radius:10px; border:1px solid #1e293b; padding:5px; height: 450px; overflow: hidden; }
+            h3 { font-size:12px; color:#3b82f6; text-align:left; margin: 10px; text-transform: uppercase; letter-spacing: 1px; }
+            @media (max-width: 850px) { .grid-layout { grid-template-columns: 1fr; } }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1 style="margin:0;">Fx Command Center</h1>
-            <p style="color:#64748b;">Confluence Bias & Fundamental Flow</p>
+            <h1 style="margin:0; letter-spacing: -1px;">Fx Command Center</h1>
+            <p style="color:#64748b; margin-top: 5px;">Confluence Bias & Macro Data</p>
 
-            <table style="margin-top:20px;">
-                <tr><th>Pair</th><th>Signal</th><th>Duration</th></tr>
-                <tr><td colspan='3' style='padding:40px; text-align:center; color:#475569;'>Waiting for Market Alignment...</td></tr>
-            </table>
+            <div style="background:#020617; padding:15px; border-radius:10px; border:1px solid #1e293b; margin-top:20px;">
+                <table>
+                    <thead>
+                        <tr><th>Pair</th><th>Signal</th><th>Duration</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan='3' style='padding:40px; text-align:center; color:#475569;'>No confluence detected. Standing by...</td></tr>
+                    </tbody>
+                </table>
+            </div>
 
             <div class="grid-layout">
                 <div class="widget-card">
-                    <h3 style="font-size:12px; color:#3b82f6; text-align:left; margin-left:10px;">📅 ECONOMIC CALENDAR</h3>
-                    <iframe src="https://www.widgets.investing.com/live-economic-calendar?theme=darkTheme&roundedCorners=true&countries=1,5,2,4,3,7,6&importance=2,3" width="100%" height="350" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"></iframe>
+                    <h3>📅 Economic Calendar</h3>
+                    <iframe src="https://www.tradingview.com/embed-widget/events/?locale=en#%7B%22colorTheme%22%3A%22dark%22%2C%22isMaximized%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%7D" width="100%" height="400" frameborder="0"></iframe>
                 </div>
                 
                 <div class="widget-card">
-                    <h3 style="font-size:12px; color:#ef4444; text-align:left; margin-left:10px;">🔥 MARKET NEWS</h3>
-                    <iframe src="https://www.widgets.investing.com/live-currency-news?theme=darkTheme&roundedCorners=true" width="100%" height="350" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"></iframe>
+                    <h3>🔥 Live News Feed</h3>
+                    <iframe src="https://www.tradingview.com/embed-widget/timeline/?locale=en#%7B%22colorTheme%22%3A%22dark%22%2C%22isMaximized%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%7D" width="100%" height="400" frameborder="0"></iframe>
                 </div>
             </div>
 
-            <div style="margin-top:30px; font-size:11px; color:#475569;">
-                STRENGTH PEAKS: USD: 0 | EUR: 0 | GBP: 0 | JPY: 0 | AUD: 0 | NZD: 0 | CAD: 0 | CHF: 0
+            <div style="margin-top:30px; padding:15px; background:#020617; border-radius:8px; font-size:11px; color:#475569; border: 1px solid #1e293b;">
+                RAW STRENGTH: <b>USD:</b> 0 | <b>EUR:</b> 0 | <b>GBP:</b> 0 | <b>JPY:</b> 0 | <b>AUD:</b> 0 | <b>NZD:</b> 0 | <b>CAD:</b> 0 | <b>CHF:</b> 0
             </div>
+            <p style="font-size:10px; color:#334155; margin-top:10px;">Updated at: 2026-02-21 11:59:40 UTC</p>
         </div>
     </body>
     </html>
