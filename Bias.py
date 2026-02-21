@@ -100,18 +100,45 @@ def generate_dashboard(peaks):
     log_html = "".join([f"<p style='margin:5px 0;'>{entry}</p>" for entry in data_store["log"]])
     
     html = f"""
+    <!DOCTYPE html>
     <html>
-    <body style="background:#020617; color:white; font-family:sans-serif; text-align:center; padding:20px;">
-        <div style="max-width:800px; margin:auto; background:#0f172a; padding:30px; border-radius:15px; border:1px solid #1e293b;">
-            <h1>Confluence Dashboard</h1>
-            <p style="color:#64748b;">Updated: {datetime.datetime.now().strftime('%H:%M:%S')} UTC</p>
-            <table style="width:100%; border-collapse:collapse; text-align:left; margin-top:20px;">
-                <tr style="color:#94a3b8; border-bottom: 2px solid #1e293b;"><th>Pair</th><th>Signal</th><th>Duration</th></tr>
-                {table_rows if table_rows else "<tr><td colspan='3' style='padding:20px; text-align:center;'>No Signals</td></tr>"}
+    <head>
+        <title>Fx Command Center</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ background:#020617; color:white; font-family:sans-serif; text-align:center; padding:20px; }}
+            .container {{ max-width:1000px; margin:auto; background:#0f172a; padding:30px; border-radius:15px; border:1px solid #1e293b; }}
+            .grid-layout {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }}
+            table {{ width:100%; border-collapse:collapse; text-align:left; }}
+            th {{ color:#94a3b8; border-bottom: 2px solid #1e293b; padding:12px; font-size:12px; }}
+            .widget-card {{ background:#020617; border-radius:10px; border:1px solid #1e293b; padding:10px; height: 400px; overflow: hidden; }}
+            @media (max-width: 768px) {{ .grid-layout {{ grid-template-columns: 1fr; }} }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1 style="margin:0;">Fx Command Center</h1>
+            <p style="color:#64748b;">Confluence Bias & Fundamental Flow</p>
+
+            <table style="margin-top:20px;">
+                <tr><th>Pair</th><th>Signal</th><th>Duration</th></tr>
+                {table_rows if table_rows else "<tr><td colspan='3' style='padding:40px; text-align:center; color:#475569;'>Waiting for Market Alignment...</td></tr>"}
             </table>
-            <div style="background:#020617; padding:15px; border-radius:10px; text-align:left; margin-top:20px; border:1px solid #1e293b;">
-                <h3 style="font-size:12px; color:#3b82f6; text-transform:uppercase; margin-top:0;">Recent Activity Log</h3>
-                <div style="font-family:monospace; font-size:12px; color:#94a3b8;">{log_html if log_html else "Monitoring..."}</div>
+
+            <div class="grid-layout">
+                <div class="widget-card">
+                    <h3 style="font-size:12px; color:#3b82f6; text-align:left; margin-left:10px;">📅 ECONOMIC CALENDAR</h3>
+                    <iframe src="https://www.widgets.investing.com/live-economic-calendar?theme=darkTheme&roundedCorners=true&countries=1,5,2,4,3,7,6&importance=2,3" width="100%" height="350" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"></iframe>
+                </div>
+                
+                <div class="widget-card">
+                    <h3 style="font-size:12px; color:#ef4444; text-align:left; margin-left:10px;">🔥 MARKET NEWS</h3>
+                    <iframe src="https://www.widgets.investing.com/live-currency-news?theme=darkTheme&roundedCorners=true" width="100%" height="350" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0"></iframe>
+                </div>
+            </div>
+
+            <div style="margin-top:30px; font-size:11px; color:#475569;">
+                STRENGTH PEAKS: {" | ".join([f"{k}: {v}" for k,v in peaks.items()])}
             </div>
         </div>
     </body>
@@ -123,3 +150,4 @@ def generate_dashboard(peaks):
 if __name__ == "__main__":
     peaks = fetch_data()
     generate_dashboard(peaks)
+
