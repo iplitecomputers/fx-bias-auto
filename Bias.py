@@ -6,48 +6,44 @@ import os
 # --- SETTINGS ---
 CURRENCIES = ["USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"]
 TIMEFRAMES = ["1d", "4h", "1h"] 
-HISTORY_FILE = "history.json"
+HISTORY_FILE = "fx_history.json"
 
 def get_base_score(raw_val):
-    """Maps 0-100 BabyPips scale to -5 to +5 scale"""
+    """Maps BabyPips 0-100 scale to -6 to +6 scale"""
     try:
-        # (raw - 50) / 10: 100 becomes +5, 0 becomes -5, 50 becomes 0
-        score = int(round((float(raw_val) - 50) / 10))
-        return max(min(score, 5), -5) 
+        # Scale: 0=-6, 50=0, 100=+6
+        val = float(raw_val)
+        score = int(round((val - 50) / 8.33))
+        return max(min(score, 6), -6)
     except:
         return 0
 
-def get_peak_logic(scores):
+def get_verdict(scores):
     """
-    Implements your dominance and lane validity logic:
-    1. Conflict Check: Invalid if contains both Strong (>=3) and Weak (<=-3).
-    2. Threshold Check: Valid Strong must hit at least +4. Valid Weak must hit -4.
-    3. Neutral Check: If no extremes, check if it fits the 0/1/-1 neutral zone.
+    Implements your specific Logic:
+    1. Check for Conflict (Strong and Weak in same set)
+    2. Determine if Strong, Weak, or Neutral
     """
     s_max = max(scores)
     s_min = min(scores)
     
-    # RULE: Conflict Check (e.g., +3 and -5 in the same set)
-    has_strong_pos = any(x >= 3 for x in scores)
-    has_strong_neg = any(x <= -3 for x in scores)
+    # RULE: Conflict Check (e.g., +4 and -4 in the same set)
+    is_strong_present = any(x >= 4 for x in scores)
+    is_weak_present = any(x <= -4 for x in scores)
     
-    if has_strong_pos and has_strong_neg:
-        return "INVALID"
+    if is_strong_present and is_weak_present:
+        return "INVALID", 0
 
-    # RULE: Valid Strong (Must have a 4 or 5 and NO strong negatives)
-    if s_max >= 4:
-        return s_max
-    
-    # RULE: Valid Weak (Must have a -4 or -5 and NO strong positives)
-    if s_min <= -4:
-        return s_min
-    
-    # RULE: Neutral Logic (If only 0, 1, or -1 are present)
-    if all(-1 <= x <= 1 for x in scores):
-        return "NEUTRAL"
-
-    # Everything else (like a max of +3 without a +4, or mixed small numbers)
-    return "INVALID"
+    # Determine status and final score
+    if is_strong_present:
+        return "STRONG", s_max
+    elif is_weak_present:
+        return "WEAK", s_min
+    else:
+        # Neutral logic: get the value with highest absolute magnitude as representative
+        # Or simply the max/min depending on bias
+        final_neutral = s_max if abs(s_max) >= abs(s_min) else s_min
+        return "NEUTRAL", final_neutral
 
 def fetch_data():
     raw_data = {tf: {c: 0 for c in CURRENCIES} for tf in TIMEFRAMES}
@@ -61,123 +57,124 @@ def fetch_data():
         except Exception as e:
             print(f"Error fetching {tf}: {e}")
     
-    peaks = {}
+    results = {}
     for c in CURRENCIES:
         # Order: 1D, 4H, 1H
-        scores = [raw_data['1d'].get(c,0), raw_data['4h'].get(c,0), raw_data['1h'].get(c,0)]
-        peaks[c] = get_peak_logic(scores)
-    return peaks
+        scores = [raw_data['1d'][c], raw_data['4h'][c], raw_data['1h'][c]]
+        status, final_val = get_verdict(scores)
+        results[c] = {
+            "1d": scores[0], "4h": scores[1], "1h": scores[2],
+            "status": status, "final": final_val
+        }
+    return results
 
-def generate_dashboard(peaks):
-    data_store = {"signals": {}, "log": []}
+def generate_dashboard(current_results):
+    # Load History for "Last Hour" Verdict
+    history = {}
     if os.path.exists(HISTORY_FILE):
         try:
             with open(HISTORY_FILE, "r") as f:
-                data_store = json.load(f)
+                history = json.load(f)
         except: pass
 
-    # Filter currencies based on your trading rules
-    # We trade Strong (+4, +5) against Weak (-4, -5) OR Neutral
-    strong_side = [c for c, s in peaks.items() if s in [4, 5]]
-    weak_side = [c for c, s in peaks.items() if s in [-4, -5]]
-    neutrals = [c for c, s in peaks.items() if s == "NEUTRAL"]
+    # 1. GROUP CURRENCIES
+    strongs = [c for c, d in current_results.items() if d['status'] == "STRONG"]
+    weaks = [c for c, d in current_results.items() if d['status'] == "WEAK"]
+    neutrals = [c for c, d in current_results.items() if d['status'] == "NEUTRAL"]
 
-    active_pairs = []
-    # Strong vs Weak
-    for s in strong_side:
-        for w in weak_side:
-            active_pairs.append((f"{s}{w}", "BUY"))
-            active_pairs.append((f"{w}{s}", "SELL"))
-    # Strong vs Neutral
-    for s in strong_side:
-        for n in neutrals:
-            active_pairs.append((f"{s}{n}", "BUY"))
-    # Neutral vs Weak
-    for n in neutrals:
-        for w in weak_side:
-            active_pairs.append((f"{n}{w}", "BUY"))
-
-    timestamp = datetime.datetime.now().strftime('%H:%M')
-    new_signals_dict = {}
-
-    for pair, side in active_pairs:
-        prev = data_store.get("signals", {}).get(pair, {})
-        if side == prev.get("side"):
-            duration = prev.get("duration", 0) + 1
-        else:
-            duration = 1
-            data_store["log"].insert(0, f"[{timestamp}] {side} {pair}")
+    # 2. GENERATE TRADE LIST BIAS
+    trade_list = []
+    # All combinations for 8 currencies
+    import itertools
+    for base, quote in itertools.permutations(CURRENCIES, 2):
+        b_stat = current_results[base]['status']
+        q_stat = current_results[quote]['status']
         
-        new_signals_dict[pair] = {"side": side, "duration": duration}
+        pair = f"{base}/{quote}"
+        bias = None
+        
+        # LOGIC: Weak vs Strong | Strong vs Neutral | Weak vs Neutral
+        if b_stat == "STRONG" and q_stat == "WEAK": bias = "BUY (Strong vs Weak)"
+        elif b_stat == "WEAK" and q_stat == "STRONG": bias = "SELL (Weak vs Strong)"
+        elif b_stat == "STRONG" and q_stat == "NEUTRAL": bias = "BUY (Strong vs Neutral)"
+        elif b_stat == "NEUTRAL" and q_stat == "STRONG": bias = "SELL (Neutral vs Strong)"
+        elif b_stat == "NEUTRAL" and q_stat == "WEAK": bias = "BUY (Neutral vs Weak)"
+        elif b_stat == "WEAK" and q_stat == "NEUTRAL": bias = "SELL (Weak vs Neutral)"
+        elif b_stat == "WEAK" and q_stat == "WEAK": bias = "AVOID (Weak vs Weak)"
+        elif b_stat == "STRONG" and q_stat == "STRONG": bias = "AVOID (Strong vs Strong)"
+        elif b_stat == "NEUTRAL" and q_stat == "NEUTRAL": bias = "AVOID (Neutral vs Neutral)"
+        else: bias = "AVOID (Invalid data)"
 
-    data_store["signals"] = new_signals_dict
-    data_store["log"] = data_store["log"][:5]
+        trade_list.append((pair, bias))
 
-    # --- HTML GENERATION ---
-    table_rows = ""
-    for pair, info in data_store["signals"].items():
-        color = "#22c55e" if info["side"] == "BUY" else "#ef4444"
-        table_rows += f"<tr style='border-bottom:1px solid #1e293b;'><td style='padding:12px;'><b>{pair}</b></td><td style='color:{color}; font-weight:bold;'>{info['side']}</td><td>{info['duration']}h</td></tr>"
+    # 3. CONSTRUCT STRINGS FOR DASHBOARD
+    currency_rows = ""
+    for c in CURRENCIES:
+        d = current_results[c]
+        last_stat = history.get(c, {}).get('status', 'N/A')
+        # Display format: USD (1d)+3 (4H)-1 (1H)+5 USD= +5 strong
+        display_str = f"{c} (1d){d['1d']:+d} (4h){d['4h']:+d} (1h){d['1h']:+d} = {d['final']:+d} {d['status']}"
+        
+        color = "#22c55e" if d['status'] == "STRONG" else "#ef4444" if d['status'] == "WEAK" else "#94a3b8"
+        if d['status'] == "INVALID": color = "#f97316"
 
-    # Create the RAW STRENGTH string for the footer
-    raw_strings = []
-    for k, v in peaks.items():
-        color = "#94a3b8"
-        if v == "INVALID": color = "#475569"
-        elif v == "NEUTRAL": color = "#fbbf24"
-        elif isinstance(v, int) and v > 0: color = "#22c55e"
-        elif isinstance(v, int) and v < 0: color = "#ef4444"
-        raw_strings.append(f"<span style='color:{color}'><b>{k}:</b> {v}</span>")
+        currency_rows += f"""
+        <tr style="border-bottom:1px solid #1e293b;">
+            <td style="padding:10px; color:{color}; font-family:monospace;">{display_str}</td>
+            <td style="padding:10px; font-size: 0.8em; color:#64748b;">Prev: {last_stat}</td>
+        </tr>"""
 
+    trade_rows = ""
+    for pair, bias in trade_list:
+        color = "#22c55e" if "BUY" in bias else "#ef4444" if "SELL" in bias else "#475569"
+        trade_rows += f"<tr><td style='padding:5px;'><b>{pair}</b></td><td style='color:{color};'>{bias}</td></tr>"
+
+    # 4. HTML TEMPLATE
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Fx Command Center</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>FX Strength Dashboard</title>
         <style>
-            body {{ background:#020617; color:white; font-family:sans-serif; text-align:center; padding:20px; }}
-            .container {{ max-width:1100px; margin:auto; background:#0f172a; padding:30px; border-radius:15px; border:1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
-            .grid-layout {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; }}
-            table {{ width:100%; border-collapse:collapse; text-align:left; margin-bottom: 20px; }}
-            th {{ color:#94a3b8; border-bottom: 2px solid #1e293b; padding:12px; font-size:12px; text-transform: uppercase; }}
-            td {{ padding: 12px; border-bottom: 1px solid #1e293b; }}
-            .widget-card {{ background:#131722; border-radius:10px; border:1px solid #1e293b; padding:5px; height: 450px; overflow: hidden; }}
-            h3 {{ font-size:12px; color:#3b82f6; text-align:left; margin: 10px; text-transform: uppercase; letter-spacing: 1px; }}
-            @media (max-width: 850px) {{ .grid-layout {{ grid-template-columns: 1fr; }} }}
+            body {{ background:#020617; color:white; font-family:sans-serif; padding:20px; }}
+            .container {{ max-width:1000px; margin:auto; }}
+            .card {{ background:#0f172a; padding:20px; border-radius:10px; border:1px solid #1e293b; margin-bottom:20px; }}
+            table {{ width:100%; border-collapse:collapse; }}
+            h2 {{ color:#3b82f6; border-bottom:1px solid #3b82f6; padding-bottom:10px; }}
+            .grid {{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; }}
         </style>
     </head>
     <body>
         <div class="container">
-            <h1 style="margin:0; letter-spacing: -1px;">Fx Command Center</h1>
-            <div style="background:#020617; padding:15px; border-radius:10px; border:1px solid #1e293b; margin-top:20px;">
-                <table>
-                    <thead><tr><th>Pair</th><th>Signal</th><th>Duration</th></tr></thead>
-                    <tbody>{table_rows if table_rows else "<tr><td colspan='3' style='padding:40px; text-align:center; color:#475569;'>No confluence detected.</td></tr>"}</tbody>
-                </table>
+            <h1>Currency Strength Command Center</h1>
+            
+            <div class="card">
+                <h2>Currency Strength Breakdown</h2>
+                <table>{currency_rows}</table>
             </div>
-            <div class="grid-layout">
-                <div class="widget-card">
-                    <h3>📅 Economic Calendar</h3>
-                    <iframe src="https://www.tradingview.com/embed-widget/events/?locale=en#%7B%22colorTheme%22%3A%22dark%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%7D" width="100%" height="400" frameborder="0"></iframe>
+
+            <div class="grid">
+                <div class="card">
+                    <h2>Summary</h2>
+                    <p><b style="color:#22c55e;">Strongest:</b> {", ".join(strongs) if strongs else "None"}</p>
+                    <p><b style="color:#ef4444;">Weakest:</b> {", ".join(weaks) if weaks else "None"}</p>
+                    <p><b style="color:#94a3b8;">Neutral:</b> {", ".join(neutrals) if neutrals else "None"}</p>
                 </div>
-                <div class="widget-card">
-                    <h3>🔥 Recent Alerts</h3>
-                    <div style="text-align:left; padding:15px; font-family:monospace; color:#22c55e;">
-                        {"".join([f"<p style='margin:5px 0;'>{log}</p>" for log in data_store['log']])}
-                    </div>
+                
+                <div class="card" style="height: 400px; overflow-y: scroll;">
+                    <h2>Forex Trade List Bias</h2>
+                    <table>{trade_rows}</table>
                 </div>
-            </div>
-            <div style="margin-top:30px; padding:15px; background:#020617; border-radius:8px; font-size:11px; border: 1px solid #1e293b;">
-                {" | ".join(raw_strings)}
             </div>
         </div>
     </body>
     </html>
     """
+    
     with open("index.html", "w") as f: f.write(html)
-    with open(HISTORY_FILE, "w") as f: json.dump(data_store, f)
+    with open(HISTORY_FILE, "w") as f: json.dump(current_results, f)
+    print("Dashboard Updated Successfully.")
 
 if __name__ == "__main__":
-    peaks = fetch_data()
-    generate_dashboard(peaks)
+    data = fetch_data()
+    generate_dashboard(data)
